@@ -62,7 +62,7 @@ jobs:
           sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git add lipidoracle/_version.py
+          git add pyproject.toml
           git commit -m "Bump version to $new_version"
           git push
 
