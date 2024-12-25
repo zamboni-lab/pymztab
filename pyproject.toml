@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymztab"
+version = "0.1.0"
+authors = [
+  { name = "Anonymous", email = "anonymous@example.com" }
+]
+description = "A Python package for working with mzTab files"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pymztab",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/zambonilab/pymztab"
+"Bug Tracker" = "https://github.com/zambonilab/pymztab/issues"
