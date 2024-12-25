@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pymztab"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
   { name = "Anonymous", email = "anonymous@example.com" }
 ]
