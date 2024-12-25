@@ -1,0 +1,136 @@
+name: Update Version, Tag, and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Get current version
+        id: get_version
+        run: |
+          current_version=$(grep -Po '(?<=version = ")([0-9]+\.[0-9]+\.[0-9]+)(?=")' pyproject.toml)
+          echo "current_version=$current_version" >> $GITHUB_ENV
+
+      - name: Determine version bump
+        id: bump_type
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          if [[ $commit_message == *"[major]"* ]]; then
+            echo "bump_type=major" >> $GITHUB_ENV
+          elif [[ $commit_message == *"[minor]"* ]]; then
+            echo "bump_type=minor" >> $GITHUB_ENV
+          else
+            echo "bump_type=patch" >> $GITHUB_ENV
+          fi
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          major=$(echo $current_version | cut -d. -f1)
+          minor=$(echo $current_version | cut -d. -f2)
+          patch=$(echo $current_version | cut -d. -f3)
+
+          case $bump_type in
+            major)
+              new_version="$((major + 1)).0.0"
+              ;;
+            minor)
+              new_version="$major.$((minor + 1)).0"
+              ;;
+            patch)
+              new_version="$major.$minor.$((patch + 1))"
+              ;;
+          esac
+
+          echo "new_version=$new_version" >> $GITHUB_ENV
+
+      - name: Update version in _version.py
+        run: |
+          sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" pyproject.toml
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git add lipidoracle/_version.py
+          git commit -m "Bump version to $new_version"
+          git push
+
+      - name: Create new strings
+        run: |
+          new_version="${{ env.new_version }}"
+          major=$(echo $new_version | cut -d. -f1)
+          minor=$(echo $new_version | cut -d. -f2)
+          
+          echo "verXYZ=$new_version" >> $GITHUB_ENV
+          echo "verXY=$major.$minor" >> $GITHUB_ENV
+          echo "verX=$major" >> $GITHUB_ENV          
+
+      - name: Create new tags
+        run: |
+          git tag -f "v${{ env.verXYZ }}"
+          git tag -f "v${{ env.verXY }}"
+          git tag -f "v${{ env.verX }}"
+          git push origin --tags --force
+
+      - name: Delete release v[major] if it exists
+        run: |
+          gh release delete "v${{ env.verX }}" -y || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update release for v[major]
+        uses: actions/create-release@v1
+        with:
+          tag_name: "v${{ env.verX }}"
+          release_name: "v${{ env.verX }}"
+          body: "Release major version ${{ env.verX }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete release v[major].[minor] ]if it exists
+        run: |
+          gh release delete "v${{ env.verXY }}" -y || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update release for v[major].[minor]
+        uses: actions/create-release@v1
+        with:
+          tag_name: "v${{ env.verXY }}"
+          release_name: "v${{ env.verXY }}"
+          body: "Release minor version ${{ env.verXY }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Delete release v[major].[minor].[patch] if it exists
+        run: |
+          gh release delete "v${{ env.verXYZ }}" -y || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create or update release for v[major].[minor].[patch]
+        uses: actions/create-release@v1
+        with:
+          tag_name: "v${{ env.verXYZ }}"
+          release_name: "v${{ env.verXYZ }}"
+          body: "Release version ${{ env.verXYZ }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
